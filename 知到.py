@@ -2,6 +2,8 @@ import execjs
 import requests
 import time
 import base64
+from Crypto.Cipher import AES
+from AES import AEScryptor
 
 # recruitId
 recruitId = ""
@@ -14,16 +16,21 @@ t = time.time()
 dateFormate = int(round(t * 1000) / 1000)
 # 课程secret码
 recruitAndCourseId = ""
-# session
-SESSION = input("请输入session登录：")
+# cookies值
+COOKIES = input("请输入Cookie登录：")
 # 请求头
 headers = {
-    "Cookie": "SESSION=" + SESSION + ";"
+    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39',
+    "Cookie": COOKIES
 }
 # 用户id
 uuid = ""
 # 判断类型
 typeNumbers = 0
+
+key = b"qz632524n86i7fk9"
+iv = b"1g3qqdh4jvbskb9x"
+aes = AEScryptor(key, AES.MODE_CBC, iv, paddingMode="PKCS7Padding", characterSet='utf-8')
 
 
 ctx = execjs.compile("""
@@ -86,34 +93,39 @@ def generateWatchPoint(videoSec):
 
 
 def submitData(k, studyTotalTime):
-    resp = requests.post("https://studyservice.zhihuishu.com/learning/prelearningNote", {
+    data = {
         "ccCourseId": courseId,
         "chapterId": k["chapterId"],
         "isApply": 1,
         "lessonId": k["id"],
         "recruitId": recruitId,
         "videoId": k["videoId"],
-        "uuid": uuid,
         "dateFormate": dateFormate
+    }
+    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
+        "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
     learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
     learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
     s = [recruitId, k["id"], 0, k["videoId"], k["chapterId"], "0", k["videoSec"] - studyTotalTime,
          k["videoSec"], getTolTime(k["videoSec"])]
-    resp = requests.post("https://studyservice.zhihuishu.com/learning/saveDatabaseIntervalTime", {
+
+    data = {
         "watchPoint": generateWatchPoint(k["videoSec"]),
         "ev": ctx.call("Z", s),
         "learningTokenId": learningTokenId,
         "courseId": courseId,
-        "uuid": uuid,
         "dateFormate": dateFormate
+    }
+    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/saveDatabaseIntervalTime", {
+        "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
     return resp.json()
 
 
 def submitData2(k, chapterId, studyTotalTime):
-    resp = requests.post("https://studyservice.zhihuishu.com/learning/prelearningNote", {
+    data = {
         "ccCourseId": courseId,
         "chapterId": chapterId,
         "isApply": 1,
@@ -121,21 +133,26 @@ def submitData2(k, chapterId, studyTotalTime):
         "lessonVideoId": k["id"],
         "recruitId": recruitId,
         "videoId": k["videoId"],
-        "uuid": uuid,
         "dateFormate": dateFormate
+    }
+    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
+        "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
     learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
     learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
     s = [recruitId, k["lessonId"], k["id"], k["videoId"], chapterId, "0", k["videoSec"] - studyTotalTime,
          k["videoSec"], getTolTime(k["videoSec"])]
-    resp = requests.post("https://studyservice.zhihuishu.com/learning/saveDatabaseIntervalTime", {
+
+    data = {
         "watchPoint": generateWatchPoint(k["videoSec"]),
         "ev": ctx.call("Z", s),
         "learningTokenId": learningTokenId,
         "courseId": courseId,
-        "uuid": uuid,
         "dateFormate": dateFormate
+    }
+    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/saveDatabaseIntervalTime", {
+        "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
     return resp.json()
 
@@ -164,10 +181,12 @@ if recruitAndCourseId is None or recruitAndCourseId == "":
     quit()
 else:
     # 获取当前课程所有视频信息
-    resp = requests.post("https://studyservice.zhihuishu.com/learning/videolist", {
+    data = {
         "recruitAndCourseId": recruitAndCourseId,
-        "uuid": uuid,
         "dateFormate": dateFormate
+    }
+    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/videolist", {
+        "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
     if resp.json()["code"] == 0:
         content = resp.json()["data"]
@@ -182,26 +201,29 @@ else:
 
 print("正在查询当前视频学习情况。。。。")
 data = {}
-count = 0
+videoLessonsIds = []
 for i in videoInformationList:
     videoLessons = i["videoLessons"]
     for j in videoLessons:
-        data["lessonIds[" + str(count) + "]"] = j["id"]
-        count += 1
-count = 0
+        videoLessonsIds.append(j["id"])
+data["lessonIds"] = videoLessonsIds
+
+videoSmallLessonsIds = []
 for i in videoInformationList:
     videoLessons = i["videoLessons"]
     for k in videoLessons:
         if len(k) == 9:
             videoSmallLessons = k["videoSmallLessons"]
             for l in videoSmallLessons:
-                data["lessonVideoIds[" + str(count) + "]"] = l["id"]
-                count += 1
+                videoSmallLessonsIds.append(l["id"])
+data["lessonVideoIds"] = videoSmallLessonsIds
 data["recruitId"] = recruitId
-data["uuid"] = uuid
 data["dateFormate"] = dateFormate
 
-resp = requests.post("https://studyservice.zhihuishu.com/learning/queryStuyInfo", data=data, headers=headers)
+resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/queryStuyInfo", {
+    "secretStr": aes.encryptFromString(str(data))
+}, headers=headers)
+
 if resp.json()["code"] == 0:
     print("开始检测。。。。")
     print()
