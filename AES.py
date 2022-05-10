@@ -200,7 +200,7 @@ if __name__ == '__main__':
     aes = AEScryptor(key, AES.MODE_CBC, iv, paddingMode="PKCS7Padding", characterSet='utf-8')
 
     data = '{"recruitAndCourseId":"4b595d5b415b4859454a585958425f455f","dateFormate":1650106384000}'
-    # data = 'ewuM4ytnBaQ9mbm6UutMMA7hOeM4dnbm3QZKtPcD2hamJOTpxk0/KqzeTJj7NHtPlq/TrPIKEwO71rKhC5TgLt/3i+cYGVwB/G+zx+N+OEw1FUCM47mK9UY8RN10XXNe'
+    data = 'ewuM4ytnBaQ9mbm6UutMMA7hOeM4dnbm3QZKtPcD2hamJOTpxk0/KqzeTJj7NHtPlq/TrPIKEwO71rKhC5TgLt/3i+cYGVwB/G+zx+N+OEw1FUCM47mK9UY8RN10XXNe'
     rData = aes.encryptFromString(data)
     print("密文：", rData.toBase64())
     rData = aes.decryptFromBase64(rData.toBase64())
