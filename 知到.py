@@ -1,9 +1,22 @@
+import base64
+import time
+
 import execjs
 import requests
-import time
-import base64
 from Crypto.Cipher import AES
+
 from AES import AEScryptor
+
+# 读取cookies
+with open("cookies.txt", "r") as file:
+    COOKIES = file.read()
+
+# 课程secret码列表
+with open("id.txt", "r") as file:
+    recruitAndCourseIdList = []
+    rid = file.read()
+    if rid != "":
+        recruitAndCourseIdList = rid.split("\n")
 
 # recruitId
 recruitId = ""
@@ -14,10 +27,6 @@ videoInformationList = []
 # 时间戳 毫秒级
 t = time.time()
 dateFormate = int(round(t * 1000) / 1000)
-# 课程secret码
-recruitAndCourseId = ""
-# cookies值
-COOKIES = input("请输入Cookie登录：")
 # 请求头
 headers = {
     "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39',
@@ -31,7 +40,6 @@ typeNumbers = 0
 key = b"qz632524n86i7fk9"
 iv = b"1g3qqdh4jvbskb9x"
 aes = AEScryptor(key, AES.MODE_CBC, iv, paddingMode="PKCS7Padding", characterSet='utf-8')
-
 
 ctx = execjs.compile("""
 var _a = "AgrcepndtslzyohCia0uS@",
@@ -105,6 +113,12 @@ def submitData(k, studyTotalTime):
     resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
         "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
+
+    # 页面异常处理
+    if resp.json()['data'] is None:
+        print(resp.json()['message'])
+        return resp.json()
+
     learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
     learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
@@ -138,6 +152,12 @@ def submitData2(k, chapterId, studyTotalTime):
     resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
         "secretStr": aes.encryptFromString(str(data))
     }, headers=headers)
+
+    # 页面异常处理
+    if resp.json()['data'] is None:
+        print(resp.json()['message'])
+        return resp.json()
+
     learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
     learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
@@ -157,134 +177,146 @@ def submitData2(k, chapterId, studyTotalTime):
     return resp.json()
 
 
-# 登录
-resp = requests.get("https://studyservice.zhihuishu.com/login/getLoginUserInfo?dateFormate=" + str(dateFormate) + "000"
-                    , headers=headers)
-# 读取返回数据
-data = resp.json()
-if data["code"] == 200:
-    uuid = data["data"]["uuid"]
-    print("             用户信息            ")
-    print("realName：" + data["data"]["realName"])
-    print("uuid：" + data["data"]["uuid"])
-    print("username：" + data["data"]["username"])
-    print("登录成功！")
-    print()
-else:
-    print("登录失败！停止运行")
-    quit()
+if __name__ == "__main__":
+    if COOKIES == "":
+        print("请在cookies.txt中填入播放页面的cookies")
+        exit(1)
 
-recruitAndCourseId = input("请输入课程secret码：")
-if recruitAndCourseId is None or recruitAndCourseId == "":
-    print("获取失败！停止运行")
-    quit()
-else:
-    # 获取当前课程所有视频信息
-    data = {
-        "recruitAndCourseId": recruitAndCourseId,
-        "dateFormate": dateFormate
-    }
-    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/videolist", {
-        "secretStr": aes.encryptFromString(str(data))
-    }, headers=headers)
-    if resp.json()["code"] == 0:
-        content = resp.json()["data"]
-        recruitId = content["recruitId"]
-        courseId = content["courseId"]
-        videoInformationList = content["videoChapterDtos"]
-        print("获取课程所有视频信息成功！")
-        print()
-    else:
-        print("获取课程所有视频信息失败！停止运行")
-        quit()
+    if len(recruitAndCourseIdList) == 0:
+        print("请在id.txt中填入需要刷的课程id")
+        exit(1)
 
-print("正在查询当前视频学习情况。。。。")
-data = {}
-videoLessonsIds = []
-for i in videoInformationList:
-    videoLessons = i["videoLessons"]
-    for j in videoLessons:
-        videoLessonsIds.append(j["id"])
-data["lessonIds"] = videoLessonsIds
+    # 登录
+    resp = requests.get(
+        "https://studyservice.zhihuishu.com/login/getLoginUserInfo?dateFormate=" + str(dateFormate) + "000"
+        , headers=headers)
+    # 读取返回数据
+    data = resp.json()
+    if data["code"] == 200:
+        uuid = data["data"]["uuid"]
+        print("             用户信息            ")
+        print("realName：" + data["data"]["realName"])
+        print("uuid：" + data["data"]["uuid"])
+        print("username：" + data["data"]["username"])
+        print("登录成功！")
 
-videoSmallLessonsIds = []
-for i in videoInformationList:
-    videoLessons = i["videoLessons"]
-    for k in videoLessons:
-        if len(k) == 9:
-            videoSmallLessons = k["videoSmallLessons"]
-            for l in videoSmallLessons:
-                videoSmallLessonsIds.append(l["id"])
-data["lessonVideoIds"] = videoSmallLessonsIds
-data["recruitId"] = recruitId
-data["dateFormate"] = dateFormate
+        choose = input("是否默认刷未完成的课时(Y/N)? : ")
+        for recruitAndCourseId in recruitAndCourseIdList:
+            print("--> 当前id: ", recruitAndCourseId)
+            time.sleep(3)
 
-resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/queryStuyInfo", {
-    "secretStr": aes.encryptFromString(str(data))
-}, headers=headers)
-
-if resp.json()["code"] == 0:
-    print("开始检测。。。。")
-    print()
-    queryStuyInfoData = resp.json()["data"]
-    lessonList = {}
-    lvList = {}
-    if len(queryStuyInfoData) == 2:
-        lessonList = resp.json()["data"]["lesson"]
-        lvList = resp.json()["data"]["lv"]
-    else:
-        lessonList = resp.json()["data"]["lesson"]
-    for m in videoInformationList:
-        videoLessons = m["videoLessons"]
-        for n in videoLessons:
-            if len(n) == 10:
-                lessonInformation = lessonList[str(n["id"])]
-                print("视频名称：" + n["name"])
-                print("视频总时长：" + getTolTime(n["videoSec"]))
-                print("学习总时长：" + str(lessonInformation["studyTotalTime"]) + "s")
-                if n["videoSec"] - lessonInformation["studyTotalTime"] < 50:
-                    print("状态：已完成")
+            if recruitAndCourseId is None or recruitAndCourseId == "":
+                print("获取失败！停止运行")
+                quit()
+            else:
+                # 获取当前课程所有视频信息
+                data = {
+                    "recruitAndCourseId": recruitAndCourseId,
+                    "dateFormate": dateFormate
+                }
+                resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/videolist", {
+                    "secretStr": aes.encryptFromString(str(data))
+                }, headers=headers)
+                if resp.json()["code"] == 0:
+                    content = resp.json()["data"]
+                    recruitId = content["recruitId"]
+                    courseId = content["courseId"]
+                    videoInformationList = content["videoChapterDtos"]
+                    print("获取课程所有视频信息成功！")
                     print()
                 else:
-                    print("状态：未完成")
-                    choose = input("是否刷取该节视频？（Y/N）：")
-                    if choose == "Y" or choose == "y":
-                        result = submitData(n, lessonInformation["studyTotalTime"])
-                        if result["code"] == 0:
-                            if result["data"]["submitSuccess"]:
-                                print("提交数据成功！")
+                    print("获取课程所有视频信息失败！停止运行")
+                    quit()
+
+            print("正在查询当前视频学习情况。。。。")
+            data = {}
+            videoLessonsIds = []
+            for i in videoInformationList:
+                videoLessons = i["videoLessons"]
+                for j in videoLessons:
+                    videoLessonsIds.append(j["id"])
+            data["lessonIds"] = videoLessonsIds
+
+            videoSmallLessonsIds = []
+            for i in videoInformationList:
+                videoLessons = i["videoLessons"]
+                for k in videoLessons:
+                    if len(k) == 9:
+                        videoSmallLessons = k["videoSmallLessons"]
+                        for l in videoSmallLessons:
+                            videoSmallLessonsIds.append(l["id"])
+            data["lessonVideoIds"] = videoSmallLessonsIds
+            data["recruitId"] = recruitId
+            data["dateFormate"] = dateFormate
+
+            resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/queryStuyInfo", {
+                "secretStr": aes.encryptFromString(str(data))
+            }, headers=headers)
+
+            if resp.json()["code"] == 0:
+                print("开始检测。。。。")
+                print()
+                queryStuyInfoData = resp.json()["data"]
+                lessonList = {}
+                lvList = {}
+                if len(queryStuyInfoData) == 2:
+                    lessonList = resp.json()["data"]["lesson"]
+                    lvList = resp.json()["data"]["lv"]
+                else:
+                    lessonList = resp.json()["data"]["lesson"]
+                for m in videoInformationList:
+                    videoLessons = m["videoLessons"]
+                    for n in videoLessons:
+                        if len(n) == 10:
+                            lessonInformation = lessonList[str(n["id"])]
+                            print("视频名称：" + n["name"])
+                            print("视频总时长：" + getTolTime(n["videoSec"]))
+                            print("学习总时长：" + str(lessonInformation["studyTotalTime"]) + "s")
+                            if n["videoSec"] - lessonInformation["studyTotalTime"] < 50:
+                                print("状态：已完成")
                                 print()
                             else:
-                                print("提交数据失败！")
+                                print("状态：未完成")
+                                if choose == "Y" or choose == "y":
+                                    result = submitData(n, lessonInformation["studyTotalTime"])
+                                    if result["code"] == 0:
+                                        if result["data"]["submitSuccess"]:
+                                            print("提交数据成功！")
+                                            print()
+                                        else:
+                                            print("提交数据失败！")
+                                    else:
+                                        print("请求失败！停止运行")
+                                else:
+                                    print("刷取完成！停止运行")
+                                    quit()
                         else:
-                            print("请求失败！停止运行")
-                    else:
-                        print("刷取完成！停止运行")
-                        quit()
-            else:
-                chapterId = n["chapterId"]
-                videoSmallLessons = n["videoSmallLessons"]
-                for p in videoSmallLessons:
-                    lvInformation = lvList[str(p["id"])]
-                    print("视频名称：" + p["name"])
-                    print("视频总时长：" + getTolTime(p["videoSec"]))
-                    print("学习总时长：" + str(lvInformation["studyTotalTime"]) + "s")
-                    if p["videoSec"] - lvInformation["studyTotalTime"] < 50:
-                        print("状态：已完成")
-                        print()
-                    else:
-                        print("状态：未完成")
-                        choose = input("是否刷取该节视频？（Y/N）：")
-                        if choose == "Y" or choose == "y":
-                            result = submitData2(p, chapterId, lvInformation["studyTotalTime"])
-                            if result["code"] == 0:
-                                if result["data"]["submitSuccess"]:
-                                    print("提交数据成功！")
+                            chapterId = n["chapterId"]
+                            videoSmallLessons = n["videoSmallLessons"]
+                            for p in videoSmallLessons:
+                                lvInformation = lvList[str(p["id"])]
+                                print("视频名称：" + p["name"])
+                                print("视频总时长：" + getTolTime(p["videoSec"]))
+                                print("学习总时长：" + str(lvInformation["studyTotalTime"]) + "s")
+                                if p["videoSec"] - lvInformation["studyTotalTime"] < 50:
+                                    print("状态：已完成")
                                     print()
                                 else:
-                                    print("提交数据失败！")
-                            else:
-                                print("刷取完成！停止运行")
-                                quit()
-            time.sleep(1)
-    print("全部刷取完成！感谢使用")
+                                    print("状态：未完成")
+                                    if choose == "Y" or choose == "y":
+                                        result = submitData2(p, chapterId, lvInformation["studyTotalTime"])
+                                        if result["code"] == 0:
+                                            if result["data"]["submitSuccess"]:
+                                                print("提交数据成功！")
+                                                print()
+                                            else:
+                                                print("提交数据失败！")
+                                        else:
+                                            break
+                        time.sleep(1)
+
+        print("全部刷取完成！感谢使用")
+
+    else:
+        print("登录失败！停止运行")
+        quit()
