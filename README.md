@@ -1,5 +1,6 @@
-# 我在这说一下关于Cookie值登录失败的问题，需要取播放界面的Cookie值，最好就取/learning/saveDatabaseIntervalTime这个接口的Cookie值
-# 知到请求参数更新了，参数用了AES加密，且移除了用户id这个参数，将这个参数添加到了cookies里面，所以现在只用session已经登不上去了，需要直接贴cookies
+## 我在这说一下关于Cookie值登录失败的问题，需要取播放界面的Cookie值，最好就取/learning/saveDatabaseIntervalTime这个接口的Cookie值
+## 关于课程secret码的问题 请大家滑到最下面 都是有说明的，它其实就在播放界面的地址里面 
+## 知到请求参数更新了，参数用了AES加密，且移除了用户id这个参数，将这个参数添加到了cookies里面，所以现在只用session已经登不上去了，需要直接贴cookies
 
 # 前言
 
@@ -467,7 +468,7 @@ if resp.json()["code"] == 0:
 
 ```
 <font color=#999AAA >补充几点:
-1.第一步需要先去播放界面打开开发者模式随便抓个包，拿到cookies里面SESSION
+1.第一步需要先去播放界面打开开发者模式随便抓个包，拿到cookies里面SESSION（现在需要整个cookie）
 2.第二步需要复制当前课程的recruitAndCourseId，在播放界面的URL地址里面
 图片放一下，好理解
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/f33f3bc02dea490894ee79cafe6a8d18.png?x-oss-process=image/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBA56ia5bCP55m9,size_20,color_FFFFFF,t_70,g_se,x_16#pic_center)
