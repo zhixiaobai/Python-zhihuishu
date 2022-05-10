@@ -1,7 +1,16 @@
 ## 环境Python3.9
-## 我在这说一下关于Cookie值登录失败的问题，需要取播放界面的Cookie值，最好就取/learning/saveDatabaseIntervalTime这个接口的Cookie值
-## 关于课程secret码的问题 请大家滑到最下面 都是有说明的，它其实就在播放界面的地址里面 
-## 知到请求参数更新了，参数用了AES加密，且移除了用户id这个参数，将这个参数添加到了cookies里面，所以现在只用session已经登不上去了，需要直接贴cookies
+#### 我在这说一下关于Cookie值登录失败的问题，需要取播放界面的Cookie值，最好就取/learning/saveDatabaseIntervalTime这个接口的Cookie值
+#### 关于课程secret码的问题 请大家滑到最下面 都是有说明的，它其实就在播放界面的地址里面 
+#### 知到请求参数更新了，参数用了AES加密，且移除了用户id这个参数，将这个参数添加到了cookies里面，所以现在只用session已经登不上去了，需要直接贴cookies
+
+
+### 由用户SzLeaves更新
+1.修复了XHR异常返回值导致的程序中止
+
+2.从文件中读取cookies和secret码，修改了默认选项，可以批量刷课。可以从文件里面读取需要的值，cookies从cookies.txt中读取，secret码从id.txt中读取（一行放一个课程的secret码）
+
+
+
 
 # 前言
 
