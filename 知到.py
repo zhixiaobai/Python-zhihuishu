@@ -183,7 +183,7 @@ if __name__ == "__main__":
         exit(1)
 
     if len(recruitAndCourseIdList) == 0:
-        print("在recruitAndCourseIdList.txt中填入需要刷的课程id")
+        print("请在id.txt中填入需要刷的课程id")
         exit(1)
 
     # 登录
