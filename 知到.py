@@ -163,7 +163,6 @@ resp = requests.get("https://studyservice.zhihuishu.com/login/getLoginUserInfo?d
 # 读取返回数据
 data = resp.json()
 if data["code"] == 200:
-    # 赋值
     uuid = data["data"]["uuid"]
     print("             用户信息            ")
     print("realName：" + data["data"]["realName"])
