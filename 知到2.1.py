@@ -137,7 +137,7 @@ def submitData(lesson_Information: dict, chapterId: str, studyTotalTime: int) ->
     learningTokenId: str = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
     params: dict = {
-        "watchPoint": generateWatchPoint(k["videoSec"]),
+        "watchPoint": generateWatchPoint(lesson_Information["videoSec"]),
         "ev": Z(lessonData),
         "learningTokenId": learningTokenId,
         "courseId": courseId,
