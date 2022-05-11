@@ -46,7 +46,6 @@ var _a = "AgrcepndtslzyohCia0uS@",
 _b = "A0ilndhga@usreztoSCpyc",
 _c = "d0@yorAtlhzSCeunpcagis",
 _d = "zzpttjd";
-
 function X(t) {
     for (var e = "", i = 0; i < t[_c[8] + _a[4] + _c[15] + _a[1] + _a[8] + _b[6]]; i++) {
         var n = t[_a[3] + _a[14] + _c[18] + _a[2] + _b[18] + _b[16] + _c[0] + _a[4] + _b[0] + _b[15]](i) ^ 
@@ -56,13 +55,11 @@ function X(t) {
     }
     return e
 }
-
 function Y(t) {
     var e = t[_c[7] + _a[13] + _a[20] + _b[15] + _a[2] + _b[2] + _c[15] + _c[19]](16);
     return e = e[_b[3] + _a[4] + _b[4] + _a[1] + _c[7] + _c[9]] < 2 ? _b[1] + e : e,
     e[_a[9] + _b[3] + _c[20] + _c[17] + _c[13]](-4)
 }
-
 function Z(t) {
     for (var e = "", i = 0; i < t.length; i++) {
         e += t[i] + ";";
@@ -279,17 +276,17 @@ if __name__ == "__main__":
                                 print("状态：未完成")
                                 if choose == "Y" or choose == "y":
                                     result = submitData(n, lessonInformation["studyTotalTime"])
+                                    print("----submitData1------")
                                     if result["code"] == 0:
                                         if result["data"]["submitSuccess"]:
                                             print("提交数据成功！")
                                             print()
+                                            time.sleep(2)
                                         else:
                                             print("提交数据失败！")
                                     else:
-                                        print("请求失败！停止运行")
-                                else:
-                                    print("刷取完成！停止运行")
-                                    quit()
+                                        print(result)
+                                        exit(1)
                         else:
                             chapterId = n["chapterId"]
                             videoSmallLessons = n["videoSmallLessons"]
@@ -305,14 +302,17 @@ if __name__ == "__main__":
                                     print("状态：未完成")
                                     if choose == "Y" or choose == "y":
                                         result = submitData2(p, chapterId, lvInformation["studyTotalTime"])
+                                        print("----submitData2------")
                                         if result["code"] == 0:
                                             if result["data"]["submitSuccess"]:
                                                 print("提交数据成功！")
                                                 print()
+                                                time.sleep(2)
                                             else:
                                                 print("提交数据失败！")
                                         else:
-                                            break
+                                            print(result)
+                                            exit(1)
                         time.sleep(1)
 
         print("全部刷取完成！感谢使用")
