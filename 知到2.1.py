@@ -1,11 +1,9 @@
 import base64
 import time
-
-import execjs
 import requests
 from Crypto.Cipher import AES
-
 from AES import AEScryptor
+
 
 # 读取cookies
 with open("cookies.txt", "r") as file:
@@ -19,75 +17,83 @@ with open("id.txt", "r") as file:
         recruitAndCourseIdList = rid.split("\n")
 
 # recruitId
-recruitId = ""
+recruitId: str = ""
+
 # courseId
-courseId = ""
+courseId: str = ""
+
 # 存储当前课程所有视频信息
-videoInformationList = []
-# 时间戳 毫秒级
-t = time.time()
-dateFormate = int(round(t * 1000) / 1000)
-# 请求头
-headers = {
+videoInformationList: list = list()
+
+# 获取当前时间戳 毫秒级
+timestamp: time = time.time()
+dateFormate: int = int(round(timestamp * 1000) / 1000)
+
+# 课程recruitAndCourseId码
+recruitAndCourseId: str = ""
+
+# 设置请求头 带上Cookie
+headers: dict = {
     "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39',
     "Cookie": COOKIES
 }
-# 用户id
-uuid = ""
-# 判断类型
-typeNumbers = 0
 
-key = b"qz632524n86i7fk9"
-iv = b"1g3qqdh4jvbskb9x"
-aes = AEScryptor(key, AES.MODE_CBC, iv, paddingMode="PKCS7Padding", characterSet='utf-8')
+# 初始化 AES加密器 key：密钥 iv：偏移量
+key: bytes = b"qz632524n86i7fk9"
+iv: bytes = b"1g3qqdh4jvbskb9x"
+aesCryptor: AEScryptor = AEScryptor(key, AES.MODE_CBC, iv, paddingMode="PKCS7Padding", characterSet='utf-8')
 
-ctx = execjs.compile("""
-var _a = "AgrcepndtslzyohCia0uS@",
-_b = "A0ilndhga@usreztoSCpyc",
-_c = "d0@yorAtlhzSCeunpcagis",
-_d = "zzpttjd";
-function X(t) {
-    for (var e = "", i = 0; i < t[_c[8] + _a[4] + _c[15] + _a[1] + _a[8] + _b[6]]; i++) {
-        var n = t[_a[3] + _a[14] + _c[18] + _a[2] + _b[18] + _b[16] + _c[0] + _a[4] + _b[0] + _b[15]](i) ^ 
-        _d[_b[21] + _b[6] + _a[17] + _c[5] + _b[18] + _c[4] + _a[7] + _a[4] + _a[0] + _c[7]]
-        (i % _d[_a[10] + _b[13] + _b[4] + _a[1] + _c[7] + _a[14]]);
+_a = "AgrcepndtslzyohCia0uS@"
+_b = "A0ilndhga@usreztoSCpyc"
+_c = "d0@yorAtlhzSCeunpcagis"
+_d = "zzpttjd"
+
+
+def X(t):
+    e = ""
+    for i in range(0, len(t)):
+        n = ord(t[i]) ^ ord(_d[i % len(_d)])
         e += Y(n)
-    }
     return e
-}
-function Y(t) {
-    var e = t[_c[7] + _a[13] + _a[20] + _b[15] + _a[2] + _b[2] + _c[15] + _c[19]](16);
-    return e = e[_b[3] + _a[4] + _b[4] + _a[1] + _c[7] + _c[9]] < 2 ? _b[1] + e : e,
-    e[_a[9] + _b[3] + _c[20] + _c[17] + _c[13]](-4)
-}
-function Z(t) {
-    for (var e = "", i = 0; i < t.length; i++) {
-        e += t[i] + ";";
-    }
-    return e = e.substring(0, e.length - 1), X(e);
-}
-""")
 
 
-def getTolTime(tolTime):
-    m, s = divmod(tolTime, 60)
-    h, m = divmod(m, 60)
-    tolTime = "%02d:%02d:%02d" % (h, m, s)
+def Y(t):
+    e = hex(int(t)).replace('0x', '')
+    if len(e) < 2:
+        e = _b[1] + e
+    return e[-4: -1] + e[-1]
+
+
+def Z(t):
+    e = ""
+    for i in range(0, len(t)):
+        e += str(t[i]) + ";"
+    e = e[0: len(e) - 1]
+    return X(e)
+
+
+# 获取总时间 转换成H:M:S格式
+def getTolTime(tolTime: int) -> str:
+    minute, second = divmod(tolTime, 60)
+    hour, minute = divmod(minute, 60)
+    tolTime: str = "%02d:%02d:%02d" % (hour, minute, second)
     return tolTime
 
 
-def learningTimeRecord(tolStudyTime, watchPointPost):
-    t = int(tolStudyTime / 5) + 2
+# learningTimeRecord、generateWatchPoint 通过这两个方法，生成 为/learning/saveDatabaseIntervalTime中的watchPoint参数
+# 此参数的作用是验证是否完整观看
+def learningTimeRecord(tolStudyTime: int, watchPointPost: str) -> tuple:
+    t: int = int(tolStudyTime / 5) + 2
     if watchPointPost is None or watchPointPost == "":
-        e = "0,1,"
+        e: str = "0,1,"
     else:
-        e = watchPointPost + ","
+        e: str = watchPointPost + ","
     return t, e
 
 
-def generateWatchPoint(videoSec):
-    tolStudyTime = 0
-    watchPointPost = ""
+def generateWatchPoint(videoSec: int) -> str:
+    tolStudyTime: int = 0
+    watchPointPost: str = ""
     for i in range(0, videoSec):
         if i % 2 == 0:
             t, e = learningTimeRecord(tolStudyTime, watchPointPost)
@@ -97,79 +103,49 @@ def generateWatchPoint(videoSec):
     return watchPointPost
 
 
-def submitData(k, studyTotalTime):
-    data = {
+# 提交数据 实现刷课
+def submitData(lesson_Information: dict, chapterId: str, studyTotalTime: int) -> dict:
+    params: dict = {
         "ccCourseId": courseId,
-        "chapterId": k["chapterId"],
         "isApply": 1,
-        "lessonId": k["id"],
         "recruitId": recruitId,
-        "videoId": k["videoId"],
+        "videoId": lesson_Information["videoId"],
         "dateFormate": dateFormate
     }
-    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
-        "secretStr": aes.encryptFromString(str(data))
+
+    if chapterId == "":
+        params["chapterId"] = lesson_Information["chapterId"]
+        params["lessonId"] = lesson_Information["id"]
+
+        lessonData: list = [recruitId, lesson_Information["id"], 0, lesson_Information["videoId"],
+                      lesson_Information["chapterId"], "0", lesson_Information["videoSec"] - studyTotalTime,
+                            lesson_Information["videoSec"], getTolTime(lesson_Information["videoSec"])]
+    else:
+        params["chapterId"] = chapterId
+        params["lessonVideoId"] = lesson_Information["id"]
+        params["lessonId"] = lesson_Information["lessonId"]
+
+        lessonData: list = [recruitId, lesson_Information["lessonId"], lesson_Information["id"],
+                      lesson_Information["videoId"], chapterId, "0", lesson_Information["videoSec"] - studyTotalTime,
+                      lesson_Information["videoSec"], getTolTime(lesson_Information["videoSec"])]
+
+    resp: requests = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
+        "secretStr": aesCryptor.encryptFromString(str(params))
     }, headers=headers)
 
-    # 页面异常处理
-    if resp.json()['data'] is None:
-        print(resp.json()['message'])
-        return resp.json()
+    learningTokenId: str = str(resp.json()["data"]["studiedLessonDto"]["id"])
+    learningTokenId: str = base64.encodebytes(learningTokenId.encode("utf8")).decode()
 
-    learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
-    learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
-
-    s = [recruitId, k["id"], 0, k["videoId"], k["chapterId"], "0", k["videoSec"] - studyTotalTime,
-         k["videoSec"], getTolTime(k["videoSec"])]
-
-    data = {
+    params: dict = {
         "watchPoint": generateWatchPoint(k["videoSec"]),
-        "ev": ctx.call("Z", s),
+        "ev": Z(lessonData),
         "learningTokenId": learningTokenId,
         "courseId": courseId,
         "dateFormate": dateFormate
     }
-    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/saveDatabaseIntervalTime", {
-        "secretStr": aes.encryptFromString(str(data))
-    }, headers=headers)
-    return resp.json()
 
-
-def submitData2(k, chapterId, studyTotalTime):
-    data = {
-        "ccCourseId": courseId,
-        "chapterId": chapterId,
-        "isApply": 1,
-        "lessonId": k["lessonId"],
-        "lessonVideoId": k["id"],
-        "recruitId": recruitId,
-        "videoId": k["videoId"],
-        "dateFormate": dateFormate
-    }
-    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/prelearningNote", {
-        "secretStr": aes.encryptFromString(str(data))
-    }, headers=headers)
-
-    # 页面异常处理
-    if resp.json()['data'] is None:
-        print(resp.json()['message'])
-        return resp.json()
-
-    learningTokenId = str(resp.json()["data"]["studiedLessonDto"]["id"])
-    learningTokenId = base64.encodebytes(learningTokenId.encode("utf8")).decode()
-
-    s = [recruitId, k["lessonId"], k["id"], k["videoId"], chapterId, "0", k["videoSec"] - studyTotalTime,
-         k["videoSec"], getTolTime(k["videoSec"])]
-
-    data = {
-        "watchPoint": generateWatchPoint(k["videoSec"]),
-        "ev": ctx.call("Z", s),
-        "learningTokenId": learningTokenId,
-        "courseId": courseId,
-        "dateFormate": dateFormate
-    }
-    resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/saveDatabaseIntervalTime", {
-        "secretStr": aes.encryptFromString(str(data))
+    resp: requests = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/saveDatabaseIntervalTime", {
+        "secretStr": aesCryptor.encryptFromString(str(params))
     }, headers=headers)
     return resp.json()
 
@@ -212,7 +188,7 @@ if __name__ == "__main__":
                     "dateFormate": dateFormate
                 }
                 resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/videolist", {
-                    "secretStr": aes.encryptFromString(str(data))
+                    "secretStr": aesCryptor.encryptFromString(str(data))
                 }, headers=headers)
                 if resp.json()["code"] == 0:
                     content = resp.json()["data"]
@@ -247,7 +223,7 @@ if __name__ == "__main__":
             data["dateFormate"] = dateFormate
 
             resp = requests.post("https://studyservice-api.zhihuishu.com/gateway/t/v1/learning/queryStuyInfo", {
-                "secretStr": aes.encryptFromString(str(data))
+                "secretStr": aesCryptor.encryptFromString(str(data))
             }, headers=headers)
 
             if resp.json()["code"] == 0:
@@ -275,13 +251,12 @@ if __name__ == "__main__":
                             else:
                                 print("状态：未完成")
                                 if choose == "Y" or choose == "y":
-                                    result = submitData(n, lessonInformation["studyTotalTime"])
+                                    result = submitData(n, "", lessonInformation["studyTotalTime"])
                                     print("----submitData1------")
                                     if result["code"] == 0:
                                         if result["data"]["submitSuccess"]:
                                             print("提交数据成功！")
                                             print()
-                                            time.sleep(2)
                                         else:
                                             print("提交数据失败！")
                                     else:
@@ -301,13 +276,12 @@ if __name__ == "__main__":
                                 else:
                                     print("状态：未完成")
                                     if choose == "Y" or choose == "y":
-                                        result = submitData2(p, chapterId, lvInformation["studyTotalTime"])
+                                        result = submitData(p, chapterId, lvInformation["studyTotalTime"])
                                         print("----submitData2------")
                                         if result["code"] == 0:
                                             if result["data"]["submitSuccess"]:
                                                 print("提交数据成功！")
                                                 print()
-                                                time.sleep(2)
                                             else:
                                                 print("提交数据失败！")
                                         else:
@@ -316,7 +290,6 @@ if __name__ == "__main__":
                         time.sleep(1)
 
         print("全部刷取完成！感谢使用")
-
     else:
         print("登录失败！停止运行")
-        quit()
+        exit(1)
